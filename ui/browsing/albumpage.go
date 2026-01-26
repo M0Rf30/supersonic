@@ -102,8 +102,10 @@ func newAlbumPage(
 	a.tracklist.SetSorting(sort)
 	_, canRate := a.mp.(mediaprovider.SupportsRating)
 	_, canShare := a.mp.(mediaprovider.SupportsSharing)
+	_, isJukeboxOnly := a.mp.(mediaprovider.JukeboxOnlyServer)
 	a.tracklist.Options.DisableRating = !canRate
 	a.tracklist.Options.DisableSharing = !canShare
+	a.tracklist.Options.DisableDownload = isJukeboxOnly
 	a.tracklist.OnVisibleColumnsChanged = func(cols []string) {
 		a.cfg.TracklistColumns = cols
 	}
