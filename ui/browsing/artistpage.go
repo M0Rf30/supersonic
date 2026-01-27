@@ -349,6 +349,8 @@ func (a *ArtistPage) showAlbumGrid(reSort bool) {
 			} else {
 				a.groupedReleases = widgets.NewGroupedReleases(model, a.im)
 			}
+			_, isJukeboxOnly := a.mp.(mediaprovider.JukeboxOnlyServer)
+			a.groupedReleases.DisableDownload = isJukeboxOnly
 			a.contr.ConnectGroupedReleasesActions(a.groupedReleases)
 			if a.sectionVisNeedApply {
 				a.groupedReleases.SetSectionVisibility(a.sectionVis, true)
