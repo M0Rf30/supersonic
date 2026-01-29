@@ -327,7 +327,9 @@ func (c *Controller) ShowSettingsDialog(themeUpdateCallbk func(), themeFiles map
 		devs, themeFiles, bands,
 		c.App.ServerManager.Server.ClientDecidesScrobble(),
 		isLocalPlayer, isReplayGainPlayer, isEqualizerPlayer, canSavePlayQueue,
-		c.MainWindow)
+		c.MainWindow,
+		c.App.AutoEQManager,
+		c.App.ImageManager)
 	dlg.OnReplayGainSettingsChanged = func() {
 		c.App.PlaybackManager.SetReplayGainOptions(c.App.Config.ReplayGain)
 	}

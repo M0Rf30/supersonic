@@ -48,6 +48,7 @@ type App struct {
 	LyricsManager   *LyricsManager
 	ImageManager    *ImageManager
 	AudioCache      *AudioCache
+	AutoEQManager   *AutoEQManager
 	PlaybackManager *PlaybackManager
 	LocalPlayer     *mpv.Player
 	UpdateChecker   UpdateChecker
@@ -165,6 +166,10 @@ func StartupApp(appName, displayAppName, appVersion, appVersionTag, latestReleas
 		fetch = NewLrcLibFetcher(a.cacheDir, a.Config.Application.CustomLrcLibUrl, timeout)
 	}
 	a.LyricsManager = NewLyricsManager(a.ServerManager, fetch)
+
+	// Initialize AutoEQ manager
+	timeout := time.Duration(a.Config.Application.RequestTimeoutSeconds) * time.Second
+	a.AutoEQManager = NewAutoEQManager(filepath.Join(cacheDir, "autoeq"), timeout)
 
 	// Periodically scan for remote players
 	go a.PlaybackManager.ScanRemotePlayers(a.bgrndCtx, true /*fastScan*/)

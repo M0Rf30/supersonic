@@ -2,6 +2,7 @@ package dialogs
 
 import (
 	"errors"
+	"log"
 	"math"
 	"os"
 	"slices"
@@ -48,6 +49,10 @@ type SettingsDialog struct {
 
 	clientDecidesScrobble bool
 
+	autoEQManager *backend.AutoEQManager
+	imageManager  util.ImageFetcher
+	window        fyne.Window
+
 	content fyne.CanvasObject
 }
 
@@ -63,8 +68,18 @@ func NewSettingsDialog(
 	isEqualizerPlayer bool,
 	canSavePlayQueue bool,
 	window fyne.Window,
+	autoEQManager *backend.AutoEQManager,
+	imageManager util.ImageFetcher,
 ) *SettingsDialog {
-	s := &SettingsDialog{config: config, audioDevices: audioDeviceList, themeFiles: themeFileList, clientDecidesScrobble: clientDecidesScrobble}
+	s := &SettingsDialog{
+		config:                config,
+		audioDevices:          audioDeviceList,
+		themeFiles:            themeFileList,
+		clientDecidesScrobble: clientDecidesScrobble,
+		autoEQManager:         autoEQManager,
+		imageManager:          imageManager,
+		window:                window,
+	}
 	s.ExtendBaseWidget(s)
 
 	// TODO: It may be a nicer UX to always create the equalizer tab,
@@ -479,8 +494,85 @@ func (s *SettingsDialog) createEqualizerTab(eqBands []string) *container.TabItem
 		s.config.LocalPlayback.EqualizerPreamp = g
 		debouncer()
 	}
+	geq.OnManualAdjustment = func() {
+		// Clear AutoEQ profile when user manually adjusts sliders
+		s.config.LocalPlayback.AutoEQProfilePath = ""
+		s.config.LocalPlayback.AutoEQProfileName = ""
+		geq.ClearProfileLabel()
+	}
+	geq.OnLoadAutoEQProfile = func() {
+		s.openAutoEQBrowser(geq, debouncer)
+	}
+
+	// Restore profile label if a profile is currently applied
+	if s.config.LocalPlayback.AutoEQProfileName != "" {
+		geq.SetProfileLabel(s.config.LocalPlayback.AutoEQProfileName)
+	}
+
 	cont := container.NewBorder(enabled, nil, nil, nil, geq)
 	return container.NewTabItem(lang.L("Equalizer"), cont)
+}
+
+func (s *SettingsDialog) openAutoEQBrowser(geq *GraphicEqualizer, debouncer func()) {
+	if s.autoEQManager == nil {
+		log.Printf("ERROR: AutoEQ manager not available (nil)")
+		return
+	}
+	if s.imageManager == nil {
+		log.Printf("ERROR: Image manager not available (nil)")
+		return
+	}
+
+	browser := NewAutoEQBrowser(s.autoEQManager, s.imageManager)
+
+	// Show in a modal popup dialog
+	var popup *widget.PopUp
+	popup = widget.NewModalPopUp(browser.SearchDialog, s.window.Canvas())
+
+	browser.SetOnProfileSelected(func(profile *backend.AutoEQProfile) {
+		s.applyAutoEQProfile(profile, geq, debouncer)
+		popup.Hide()
+	})
+	browser.SetOnDismiss(func() {
+		popup.Hide()
+	})
+
+	popup.Show()
+	s.window.Canvas().Focus(browser.GetSearchEntry())
+}
+
+func (s *SettingsDialog) applyAutoEQProfile(profile *backend.AutoEQProfile, geq *GraphicEqualizer, debouncer func()) {
+	// Interpolate 10-band to 15-band
+	bands15 := profile.InterpolateTo15Band()
+
+	// Update config
+	s.config.LocalPlayback.EqualizerPreamp = profile.Preamp
+	s.config.LocalPlayback.AutoEQProfilePath = profile.Path
+	s.config.LocalPlayback.AutoEQProfileName = profile.Name
+
+	// Ensure GraphicEqualizerBands has the right size
+	if len(s.config.LocalPlayback.GraphicEqualizerBands) != 15 {
+		s.config.LocalPlayback.GraphicEqualizerBands = make([]float64, 15)
+	}
+
+	// Copy interpolated values
+	for i := 0; i < 15; i++ {
+		s.config.LocalPlayback.GraphicEqualizerBands[i] = bands15[i]
+	}
+
+	// Update UI using applyPreset to avoid triggering manual adjustment
+	preset := eqPreset{
+		Name:   profile.Name,
+		Preamp: profile.Preamp,
+	}
+	copy(preset.Bands[:], bands15[:])
+	geq.applyPreset(preset)
+
+	// Show profile label
+	geq.SetProfileLabel(profile.Name)
+
+	// Trigger equalizer update
+	debouncer()
 }
 
 func (s *SettingsDialog) createAppearanceTab(window fyne.Window) *container.TabItem {

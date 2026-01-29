@@ -43,14 +43,19 @@ func getEqPresets() []eqPreset {
 type GraphicEqualizer struct {
 	widget.BaseWidget
 
-	OnChanged       func(band int, gain float64)
-	OnPreampChanged func(gain float64)
+	OnChanged            func(band int, gain float64)
+	OnPreampChanged      func(gain float64)
+	OnLoadAutoEQProfile  func()
+	OnManualAdjustment   func() // Called when user manually changes a slider
 
-	bandSliders  []*eqSlider
-	preampSlider *eqSlider
-	presetSelect *widget.Select
-	container    *fyne.Container
-	eqPresets    []eqPreset
+	bandSliders    []*eqSlider
+	preampSlider   *eqSlider
+	presetSelect   *widget.Select
+	autoEQBtn      *widget.Button
+	profileLabel   *widget.Label
+	container      *fyne.Container
+	eqPresets      []eqPreset
+	isApplyingPreset bool // Flag to prevent clearing profile during preset application
 }
 
 func NewGraphicEqualizer(preamp float64, bandFreqs []string, bandGains []float64) *GraphicEqualizer {
@@ -84,12 +89,27 @@ func (g *GraphicEqualizer) buildSliders(preamp float64, bands []string, bandGain
 		g.presetSelect.SetSelected(lang.L("EQ Flat"))
 	})
 
-	// Top bar with preset and reset
-	topBar := container.NewHBox(
-		widget.NewLabel(lang.L("EQ Preset:")),
-		g.presetSelect,
-		layout.NewSpacer(),
-		resetBtn,
+	// AutoEQ button
+	g.autoEQBtn = widget.NewButton(lang.L("Load AutoEQ Profile"), func() {
+		if g.OnLoadAutoEQProfile != nil {
+			g.OnLoadAutoEQProfile()
+		}
+	})
+
+	// Profile label (hidden by default)
+	g.profileLabel = widget.NewLabel("")
+	g.profileLabel.Hide()
+
+	// Top bar with preset, AutoEQ button, and reset
+	topBar := container.NewVBox(
+		container.NewHBox(
+			widget.NewLabel(lang.L("EQ Preset:")),
+			g.presetSelect,
+			g.autoEQBtn,
+			layout.NewSpacer(),
+			resetBtn,
+		),
+		g.profileLabel,
 	)
 
 	// Range labels
@@ -113,6 +133,9 @@ func (g *GraphicEqualizer) buildSliders(preamp float64, bands []string, bandGain
 			g.OnPreampChanged(f)
 		}
 		g.preampSlider.UpdateToolTip()
+		if !g.isApplyingPreset && g.OnManualAdjustment != nil {
+			g.OnManualAdjustment()
+		}
 	}
 	g.preampSlider.UpdateToolTip()
 	bandSlidersCtr.Add(container.NewBorder(nil, pre, nil, nil, g.preampSlider))
@@ -131,6 +154,9 @@ func (g *GraphicEqualizer) buildSliders(preamp float64, bands []string, bandGain
 				g.OnChanged(_i, f)
 			}
 			g.bandSliders[_i].UpdateToolTip()
+			if !g.isApplyingPreset && g.OnManualAdjustment != nil {
+				g.OnManualAdjustment()
+			}
 		}
 		l := newCaptionTextSizeLabel(band, fyne.TextAlignCenter)
 		c := container.NewBorder(nil, l, nil, nil, s)
@@ -155,6 +181,9 @@ func (g *GraphicEqualizer) buildSliders(preamp float64, bands []string, bandGain
 }
 
 func (g *GraphicEqualizer) applyPreset(preset eqPreset) {
+	g.isApplyingPreset = true
+	defer func() { g.isApplyingPreset = false }()
+
 	// Apply preamp
 	g.preampSlider.SetValue(preset.Preamp)
 	g.preampSlider.UpdateToolTip()
@@ -172,6 +201,22 @@ func (g *GraphicEqualizer) applyPreset(preset eqPreset) {
 			}
 		}
 	}
+}
+
+// SetProfileLabel displays the name of the applied AutoEQ profile
+func (g *GraphicEqualizer) SetProfileLabel(profileName string) {
+	if profileName == "" {
+		g.profileLabel.SetText("")
+		g.profileLabel.Hide()
+	} else {
+		g.profileLabel.SetText(fmt.Sprintf("%s: %s", lang.L("Profile"), profileName))
+		g.profileLabel.Show()
+	}
+}
+
+// ClearProfileLabel hides the profile label (called on manual adjustment)
+func (g *GraphicEqualizer) ClearProfileLabel() {
+	g.SetProfileLabel("")
 }
 
 func newCaptionTextSizeLabel(text string, alignment fyne.TextAlign) *widget.RichText {
