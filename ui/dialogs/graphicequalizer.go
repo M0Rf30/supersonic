@@ -24,6 +24,8 @@ type GraphicEqualizer struct {
 	OnPreampChanged      func(gain float64)
 	OnLoadAutoEQProfile  func()
 	OnManualAdjustment   func() // Called when user manually changes a slider
+	OnPresetSelected     func(presetName string) // Called when user selects a preset
+	OnPresetDeleted      func(presetName string) // Called when user deletes a preset
 
 	bandSliders      []*eqSlider
 	preampSlider     *eqSlider
@@ -37,7 +39,7 @@ type GraphicEqualizer struct {
 	isApplyingPreset bool // Flag to prevent clearing profile during preset application
 }
 
-func NewGraphicEqualizer(preamp float64, bandFreqs []string, bandGains []float64, presetMgr *backend.EQPresetManager, parentWindow fyne.Window) *GraphicEqualizer {
+func NewGraphicEqualizer(preamp float64, bandFreqs []string, bandGains []float64, presetMgr *backend.EQPresetManager, parentWindow fyne.Window, activePresetName string) *GraphicEqualizer {
 	g := &GraphicEqualizer{
 		presetManager: presetMgr,
 		parentWindow:  parentWindow,
@@ -45,6 +47,11 @@ func NewGraphicEqualizer(preamp float64, bandFreqs []string, bandGains []float64
 	g.ExtendBaseWidget(g)
 	g.loadPresets()
 	g.buildSliders(preamp, bandFreqs, bandGains)
+
+	// Set the dropdown to the active preset if one exists
+	if activePresetName != "" {
+		g.setActivePreset(activePresetName)
+	}
 
 	return g
 }
@@ -70,6 +77,9 @@ func (g *GraphicEqualizer) buildSliders(preamp float64, bands []string, bandGain
 			if p.Name == "Flat" {
 				g.applyPreset(p)
 				g.presetSelect.SetSelected(p.Name)
+				if g.OnPresetSelected != nil {
+					g.OnPresetSelected(p.Name)
+				}
 				break
 			}
 		}
@@ -205,6 +215,9 @@ func (g *GraphicEqualizer) updatePresetSelect() {
 			for _, p := range g.eqPresets {
 				if p.Name == cleanName {
 					g.applyPreset(p)
+					if g.OnPresetSelected != nil {
+						g.OnPresetSelected(cleanName)
+					}
 					break
 				}
 			}
@@ -213,6 +226,25 @@ func (g *GraphicEqualizer) updatePresetSelect() {
 	} else {
 		g.presetSelect.Options = presetNames
 		g.presetSelect.Refresh()
+	}
+}
+
+// setActivePreset sets the dropdown selection to match the given preset name
+func (g *GraphicEqualizer) setActivePreset(presetName string) {
+	if presetName == "" {
+		return
+	}
+
+	// Find the preset and determine display name (with asterisk for custom)
+	for _, p := range g.eqPresets {
+		if p.Name == presetName {
+			displayName := p.Name
+			if !p.IsBuiltin {
+				displayName = p.Name + " *"
+			}
+			g.presetSelect.SetSelected(displayName)
+			return
+		}
 	}
 }
 
@@ -280,6 +312,9 @@ func (g *GraphicEqualizer) showSavePresetDialog() {
 
 			// Select the newly saved preset
 			g.presetSelect.SetSelected(preset.Name + " *")
+			if g.OnPresetSelected != nil {
+				g.OnPresetSelected(preset.Name)
+			}
 		},
 		g.parentWindow,
 	)
@@ -328,6 +363,11 @@ func (g *GraphicEqualizer) showDeletePresetDialog() {
 				return
 			}
 
+			// Notify about deletion
+			if g.OnPresetDeleted != nil {
+				g.OnPresetDeleted(cleanName)
+			}
+
 			// Reload presets and update UI
 			g.loadPresets()
 			g.updatePresetSelect()
@@ -351,6 +391,11 @@ func (g *GraphicEqualizer) SetProfileLabel(profileName string) {
 // ClearProfileLabel hides the profile label (called on manual adjustment)
 func (g *GraphicEqualizer) ClearProfileLabel() {
 	g.SetProfileLabel("")
+}
+
+// ClearPresetSelection clears the preset dropdown selection
+func (g *GraphicEqualizer) ClearPresetSelection() {
+	g.presetSelect.ClearSelected()
 }
 
 func newCaptionTextSizeLabel(text string, alignment fyne.TextAlign) *widget.RichText {

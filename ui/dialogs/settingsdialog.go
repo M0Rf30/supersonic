@@ -484,7 +484,8 @@ func (s *SettingsDialog) createEqualizerTab(eqBands []string) *container.TabItem
 		eqBands,
 		s.config.LocalPlayback.GraphicEqualizerBands,
 		s.eqPresetManager,
-		s.window)
+		s.window,
+		s.config.LocalPlayback.ActiveEQPresetName)
 	debouncer := util.NewDebouncer(350*time.Millisecond, func() {
 		if s.OnEqualizerSettingsChanged != nil {
 			s.OnEqualizerSettingsChanged()
@@ -499,13 +500,25 @@ func (s *SettingsDialog) createEqualizerTab(eqBands []string) *container.TabItem
 		debouncer()
 	}
 	geq.OnManualAdjustment = func() {
-		// Clear AutoEQ profile when user manually adjusts sliders
+		// Clear AutoEQ profile and preset when user manually adjusts sliders
 		s.config.LocalPlayback.AutoEQProfilePath = ""
 		s.config.LocalPlayback.AutoEQProfileName = ""
+		s.config.LocalPlayback.ActiveEQPresetName = ""
 		geq.ClearProfileLabel()
+		geq.ClearPresetSelection()
 	}
 	geq.OnLoadAutoEQProfile = func() {
 		s.openAutoEQBrowser(geq, debouncer)
+	}
+	geq.OnPresetSelected = func(presetName string) {
+		// Save the active preset name in config
+		s.config.LocalPlayback.ActiveEQPresetName = presetName
+	}
+	geq.OnPresetDeleted = func(presetName string) {
+		// Clear active preset name if the deleted preset was active
+		if s.config.LocalPlayback.ActiveEQPresetName == presetName {
+			s.config.LocalPlayback.ActiveEQPresetName = ""
+		}
 	}
 
 	// Restore profile label if a profile is currently applied
@@ -553,6 +566,7 @@ func (s *SettingsDialog) applyAutoEQProfile(profile *backend.AutoEQProfile, geq 
 	s.config.LocalPlayback.EqualizerPreamp = profile.Preamp
 	s.config.LocalPlayback.AutoEQProfilePath = profile.Path
 	s.config.LocalPlayback.AutoEQProfileName = profile.Name
+	s.config.LocalPlayback.ActiveEQPresetName = "" // Clear preset when applying AutoEQ
 
 	// Ensure GraphicEqualizerBands has the right size
 	if len(s.config.LocalPlayback.GraphicEqualizerBands) != 15 {
@@ -571,6 +585,9 @@ func (s *SettingsDialog) applyAutoEQProfile(profile *backend.AutoEQProfile, geq 
 	}
 	copy(preset.Bands[:], bands15[:])
 	geq.applyPreset(preset)
+
+	// Clear preset dropdown since AutoEQ is now active
+	geq.ClearPresetSelection()
 
 	// Show profile label
 	geq.SetProfileLabel(profile.Name)
