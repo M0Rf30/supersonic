@@ -43,17 +43,19 @@ var (
 )
 
 type App struct {
-	Config          *Config
-	ServerManager   *ServerManager
-	LyricsManager   *LyricsManager
-	ImageManager    *ImageManager
-	AudioCache      *AudioCache
-	PlaybackManager *PlaybackManager
-	LocalPlayer     *mpv.Player
-	UpdateChecker   UpdateChecker
-	MPRISHandler    *MPRISHandler
-	WinSMTC         *windows.SMTC
-	ipcServer       ipc.IPCServer
+	Config           *Config
+	ServerManager    *ServerManager
+	LyricsManager    *LyricsManager
+	ImageManager     *ImageManager
+	AudioCache       *AudioCache
+	AutoEQManager    *AutoEQManager
+	EQPresetManager  *EQPresetManager
+	PlaybackManager  *PlaybackManager
+	LocalPlayer      *mpv.Player
+	UpdateChecker    UpdateChecker
+	MPRISHandler     *MPRISHandler
+	WinSMTC          *windows.SMTC
+	ipcServer        ipc.IPCServer
 
 	// UI callbacks to be set in main
 	OnReactivate func()
@@ -165,6 +167,11 @@ func StartupApp(appName, displayAppName, appVersion, appVersionTag, latestReleas
 		fetch = NewLrcLibFetcher(a.cacheDir, a.Config.Application.CustomLrcLibUrl, timeout)
 	}
 	a.LyricsManager = NewLyricsManager(a.ServerManager, fetch)
+	a.EQPresetManager = NewEQPresetManager(confDir)
+
+	// Initialize AutoEQ manager
+	autoEQTimeout := time.Duration(a.Config.Application.RequestTimeoutSeconds) * time.Second
+	a.AutoEQManager = NewAutoEQManager(filepath.Join(cacheDir, "autoeq"), autoEQTimeout)
 
 	// Periodically scan for remote players
 	go a.PlaybackManager.ScanRemotePlayers(a.bgrndCtx, true /*fastScan*/)
