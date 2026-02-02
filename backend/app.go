@@ -328,7 +328,8 @@ func (a *App) callOnExit() error {
 }
 
 func (a *App) initMPV() error {
-	p := mpv.NewWithClientName(a.appName)
+	// Use "supersonic-desktop" to match desktop file for proper icon resolution in PipeWire
+	p := mpv.NewWithClientName("supersonic-desktop")
 	c := a.Config.LocalPlayback
 	c.InMemoryCacheSizeMB = clamp(c.InMemoryCacheSizeMB, 10, 500)
 	if err := p.Init(c.InMemoryCacheSizeMB); err != nil {

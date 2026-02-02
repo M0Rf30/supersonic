@@ -109,6 +109,10 @@ func (p *Player) Init(maxCacheMB int) error {
 		m.SetOptionString("prefetch-playlist", "yes")
 		m.SetOptionString("force-seekable", "yes")
 		m.SetOptionString("terminal", "no")
+		// Use PulseAudio/PipeWire for proper audio stream identification
+		m.SetOptionString("ao", "pulse,pipewire,alsa")
+		// Set title to show "Artist - Track" in PipeWire metadata
+		m.SetOptionString("title", "${?metadata/by-key/Artist:${metadata/by-key/Artist} - }${media-title}")
 
 		// limit in-memory cache size
 		maxBackMB := maxCacheMB / 3
@@ -126,9 +130,12 @@ func (p *Player) Init(maxCacheMB int) error {
 			p.SetReplayGainOptions(p.replayGainOpts)
 		}
 
+		// Set audio-client-name for display name in audio mixers
 		if p.clientName != "" {
 			m.SetOptionString("audio-client-name", p.clientName)
 		}
+		// Set x11-name to match desktop file for proper window manager integration
+		m.SetOptionString("x11-name", "supersonic-desktop")
 
 		if err := m.Initialize(); err != nil {
 			return fmt.Errorf("error initializing mpv: %s", err.Error())
