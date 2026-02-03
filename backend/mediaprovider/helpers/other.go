@@ -8,6 +8,9 @@ import (
 	"github.com/dweymouth/supersonic/sharedutil"
 )
 
+// GetSimilarSongsFallback retrieves similar songs when native similar song support is unavailable.
+// It first tries to get similar tracks by artist, then falls back to random tracks from the same genre.
+// The original track is always excluded from the results.
 func GetSimilarSongsFallback(mp mediaprovider.MediaProvider, track *mediaprovider.Track, count int) []*mediaprovider.Track {
 	var tracks []*mediaprovider.Track
 	if len(track.ArtistIDs) > 0 {
@@ -27,6 +30,8 @@ func GetSimilarSongsFallback(mp mediaprovider.MediaProvider, track *mediaprovide
 	})
 }
 
+// GetArtistTracks fetches all tracks for a given artist by loading all their albums.
+// Returns an error if the artist or any album cannot be loaded.
 func GetArtistTracks(mp mediaprovider.MediaProvider, artistID string) ([]*mediaprovider.Track, error) {
 	artist, err := mp.GetArtist(artistID)
 	if err != nil {
@@ -43,6 +48,9 @@ func GetArtistTracks(mp mediaprovider.MediaProvider, artistID string) ([]*mediap
 	return allTracks, nil
 }
 
+// GetTopTracksFallback retrieves the top tracks for an artist based on play count.
+// Returns up to 'count' tracks sorted by descending play count.
+// Returns an error if the artist or albums cannot be loaded.
 func GetTopTracksFallback(mp mediaprovider.MediaProvider, artistID string, count int) ([]*mediaprovider.Track, error) {
 	tracks, err := GetArtistTracks(mp, artistID)
 	if err != nil {

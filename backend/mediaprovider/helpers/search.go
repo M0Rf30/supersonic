@@ -8,7 +8,8 @@ import (
 	"github.com/dweymouth/supersonic/backend/mediaprovider"
 )
 
-// name and terms should be pre-converted to the same case
+// AllTermsMatch checks if all search terms are present in the given name.
+// Both name and terms should be pre-converted to the same case for proper matching.
 func AllTermsMatch(name string, terms []string) bool {
 	for _, t := range terms {
 		if !strings.Contains(name, t) {
@@ -18,6 +19,14 @@ func AllTermsMatch(name string, terms []string) bool {
 	return true
 }
 
+// RankSearchResults sorts search results by relevance to the query.
+// Results are ranked by:
+//  1. Full query match vs partial match
+//  2. Earlier position of matching terms
+//  3. Item type priority
+//
+// The fullQuery should be the complete search string, while queryTerms should be
+// individual search terms (typically space-separated words from fullQuery).
 func RankSearchResults(results []*mediaprovider.SearchResult, fullQuery string, queryTerms []string) {
 	if len(queryTerms) == 0 || len(results) < 2 {
 		return
