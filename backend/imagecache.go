@@ -58,12 +58,13 @@ func (i *ImageCache) SetWithTTL(key string, val image.Image, ttl time.Duration) 
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	now := time.Now().Unix()
+	now := time.Now()
+	nowUnix := now.Unix()
 	if v, ok := i.cache[key]; ok {
 		v.val = val
 		v.ttl = ttl
-		v.expiresAt = time.Now().Add(v.ttl).Unix()
-		v.lastAccessed = now
+		v.expiresAt = now.Add(ttl).Unix()
+		v.lastAccessed = nowUnix
 		i.cache[key] = v // Update the map with modified struct
 		return
 	}
@@ -73,8 +74,8 @@ func (i *ImageCache) SetWithTTL(key string, val image.Image, ttl time.Duration) 
 	i.cache[key] = CacheItem{
 		val:          val,
 		ttl:          ttl,
-		expiresAt:    time.Now().Add(ttl).Unix(),
-		lastAccessed: now,
+		expiresAt:    now.Add(ttl).Unix(),
+		lastAccessed: nowUnix,
 	}
 }
 
@@ -110,9 +111,10 @@ func (i *ImageCache) GetResetTTL(key string, resetTTL bool) (image.Image, error)
 	defer i.mu.Unlock()
 
 	if v, ok := i.cache[key]; ok {
-		v.lastAccessed = time.Now().Unix()
+		now := time.Now()
+		v.lastAccessed = now.Unix()
 		if resetTTL {
-			v.expiresAt = time.Now().Add(v.ttl).Unix()
+			v.expiresAt = now.Add(v.ttl).Unix()
 		}
 		i.cache[key] = v // Update the map with modified struct
 		return v.val, nil
@@ -129,8 +131,9 @@ func (i *ImageCache) GetExtendTTL(key string, ttl time.Duration) (image.Image, e
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if v, ok := i.cache[key]; ok {
-		v.lastAccessed = time.Now().Unix()
-		newExpiry := time.Now().Add(ttl).Unix()
+		now := time.Now()
+		v.lastAccessed = now.Unix()
+		newExpiry := now.Add(ttl).Unix()
 		if v.expiresAt < newExpiry {
 			v.expiresAt = newExpiry
 		}
@@ -149,8 +152,9 @@ func (i *ImageCache) GetWithNewTTL(key string, newTtl time.Duration) (image.Imag
 	defer i.mu.Unlock()
 
 	if v, ok := i.cache[key]; ok {
-		v.lastAccessed = time.Now().Unix()
-		v.expiresAt = time.Now().Add(newTtl).Unix()
+		now := time.Now()
+		v.lastAccessed = now.Unix()
+		v.expiresAt = now.Add(newTtl).Unix()
 		v.ttl = newTtl
 		i.cache[key] = v // Update the map with modified struct
 		return v.val, nil
