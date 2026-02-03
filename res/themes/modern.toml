@@ -1,0 +1,67 @@
+[SupersonicTheme]
+Name = "Modern Minimalist"
+Version = "0.2"
+SupportsDark = true
+SupportsLight = true
+
+# Modern Dark Theme - Deep Blues & Purples
+[DarkColors]
+# Supersonic-specific colors
+PageBackground = "#0A0E27"           # Deep navy - main background
+ListHeader = "#12172E"               # Slightly lighter navy for list headers
+PageHeader = "#1A1F3A"               # Medium navy with purple undertone for page headers
+
+# Fyne standard colors
+Background = "#12172E"               # Slightly lighter than page background
+ScrollBar = "#7C3AED"                # Vibrant purple accent for scrollbar
+Button = "#1E293B88"                 # Semi-transparent slate for buttons
+DisabledButton = "#1E293B55"         # More transparent for disabled state
+Disabled = "#64748B"                 # Muted slate for disabled text
+Error = "#F43F5E"                    # Modern red for errors
+Focus = "#A78BFA"                    # Light purple for focus states
+Foreground = "#F1F5F9"               # Clean off-white for text
+Hover = "#1E293BCC"                  # Semi-transparent slate for hover
+Hyperlink = "#A78BFA"                # Light purple for links
+InputBackground = "#1A1F3A"          # Match page header for inputs
+InputBorder = "#334155"              # Subtle border
+MenuBackground = "#0F1420"           # Slightly darker for menus
+OverlayBackground = "#0A0E27DD"      # Semi-transparent page background
+Placeholder = "#475569"              # Muted slate for placeholders
+Pressed = "#7C3AED"                  # Vibrant purple for pressed state
+Primary = "#7C3AED"                  # Main accent color - vibrant purple
+Selection = "#7C3AED66"              # Semi-transparent purple for selection
+Separator = "#1E293B"                # Subtle separator
+Shadow = "#00000066"                 # Subtle shadow
+Success = "#10B981"                  # Modern green for success
+Warning = "#F59E0B"                  # Amber for warnings
+
+# Modern Light Theme - Clean & Sophisticated
+[LightColors]
+# Supersonic-specific colors
+PageBackground = "#FAFBFF"           # Very light blue-tinted white
+ListHeader = "#F1F3F9"               # Soft gray-blue for list headers
+PageHeader = "#E8EBFA"               # Light lavender-gray for page headers
+
+# Fyne standard colors
+Background = "#F1F3F9"               # Soft gray-blue
+ScrollBar = "#7C3AED"                # Vibrant purple accent (consistent)
+Button = "#E8EBFAEE"                 # Light lavender with slight transparency
+DisabledButton = "#E8EBFA88"         # More transparent for disabled
+Disabled = "#94A3B8"                 # Muted slate for disabled text
+Error = "#DC2626"                    # Bold red for errors
+Focus = "#6D28D9"                    # Deep purple for focus
+Foreground = "#0F172A"               # Deep slate for text
+Hover = "#DDE1F2"                    # Light purple-gray for hover
+Hyperlink = "#6D28D9"                # Deep purple for links
+InputBackground = "#FFFFFF"          # Pure white for inputs
+InputBorder = "#CBD5E1"              # Soft border
+MenuBackground = "#FFFFFF"           # Pure white for menus
+OverlayBackground = "#F1F5F9EE"      # Semi-transparent light background
+Placeholder = "#94A3B8"              # Muted placeholder text
+Pressed = "#6D28D9"                  # Deep purple for pressed state
+Primary = "#7C3AED"                  # Main accent - vibrant purple
+Selection = "#7C3AED44"              # Semi-transparent purple selection
+Separator = "#E2E8F0"                # Subtle light separator
+Shadow = "#0F172A22"                 # Very subtle shadow
+Success = "#059669"                  # Deep green for success
+Warning = "#D97706"                  # Deep amber for warnings

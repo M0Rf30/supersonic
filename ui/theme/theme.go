@@ -229,6 +229,15 @@ func (m *MyTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 
 // Returns a map [themeFileName] -> displayName
 func (m *MyTheme) ListThemeFiles() map[string]string {
+	result := make(map[string]string)
+
+	// Add embedded modern theme
+	if modernTheme, err := DecodeThemeFile(bytes.NewReader(res.ResModernToml.StaticContent)); err == nil {
+		result["modern.toml"] = modernTheme.SupersonicTheme.Name
+	} else {
+		log.Printf("Failed to load embedded modern theme: %v", err)
+	}
+
 	// Use filepath.Join to create a cross-platform file path
 	pattern := filepath.Join(m.themeFileDir, "/*.toml")
 	files, err := filepath.Glob(pattern)
@@ -236,7 +245,6 @@ func (m *MyTheme) ListThemeFiles() map[string]string {
 		log.Printf("Failed to glob files: %v", err)
 	}
 
-	result := make(map[string]string)
 	for _, filePath := range files {
 		// Clean the path to avoid issues with slashes
 		cleanPath := filepath.Clean(filePath)
