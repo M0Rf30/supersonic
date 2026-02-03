@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.7.2
 	github.com/20after4/configdir v0.1.1
 	github.com/Microsoft/go-winio v0.6.2
+	github.com/asticode/go-astiav v0.40.0
 	github.com/boxes-ltd/imaging v1.7.4
 	github.com/cenkalti/dominantcolor v1.0.3
 	github.com/charlievieth/strcase v0.0.5
@@ -13,6 +14,7 @@ require (
 	github.com/dweymouth/fyne-advanced-list v0.0.0-20250211191927-58ea85eec72c
 	github.com/dweymouth/fyne-tooltip v0.4.0
 	github.com/dweymouth/go-jellyfin v0.0.0-20250928223159-bd2fb9681ef5
+	github.com/ebitengine/oto/v3 v3.4.0
 	github.com/go-audio/audio v1.0.0
 	github.com/go-audio/wav v1.1.0
 	github.com/godbus/dbus/v5 v5.2.2
@@ -36,8 +38,10 @@ require (
 	fyne.io/systray v1.12.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/FyshOS/fancyfs v0.0.1 // indirect
+	github.com/asticode/go-astikit v0.42.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/fredbi/uri v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fyne-io/gl-js v0.2.0 // indirect

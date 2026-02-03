@@ -310,9 +310,16 @@ func (c *Controller) ShowAboutDialog() {
 }
 
 func (c *Controller) ShowSettingsDialog(themeUpdateCallbk func(), themeFiles map[string]string) {
-	devs, err := c.App.LocalPlayer.ListAudioDevices()
-	if err != nil {
-		log.Printf("error listing audio devices: %v", err)
+	var devs []mpv.AudioDevice
+	var err error
+	if c.App.MPVPlayer != nil {
+		devs, err = c.App.MPVPlayer.ListAudioDevices()
+		if err != nil {
+			log.Printf("error listing audio devices: %v", err)
+			devs = []mpv.AudioDevice{{Name: "auto", Description: lang.L("Autoselect device")}}
+		}
+	} else {
+		// Native player doesn't support device selection yet
 		devs = []mpv.AudioDevice{{Name: "auto", Description: lang.L("Autoselect device")}}
 	}
 
@@ -321,7 +328,15 @@ func (c *Controller) ShowSettingsDialog(themeUpdateCallbk func(), themeFiles map
 	_, isEqualizerPlayer := curPlayer.(*mpv.Player)
 	_, canSavePlayQueue := c.App.ServerManager.Server.(mediaprovider.CanSavePlayQueue)
 	isLocalPlayer := isEqualizerPlayer
-	bands := c.App.LocalPlayer.Equalizer().BandFrequencies()
+
+	var bands []string
+	if c.App.MPVPlayer != nil {
+		bandsFloat := c.App.MPVPlayer.Equalizer().BandFrequencies()
+		bands = make([]string, len(bandsFloat))
+		for i, b := range bandsFloat {
+			bands[i] = fmt.Sprintf("%.0f", b)
+		}
+	}
 
 	dlg := dialogs.NewSettingsDialog(c.App.Config,
 		devs, themeFiles, bands,
@@ -332,22 +347,30 @@ func (c *Controller) ShowSettingsDialog(themeUpdateCallbk func(), themeFiles map
 		c.App.PlaybackManager.SetReplayGainOptions(c.App.Config.ReplayGain)
 	}
 	dlg.OnAudioExclusiveSettingChanged = func() {
-		c.App.LocalPlayer.SetAudioExclusive(c.App.Config.LocalPlayback.AudioExclusive)
+		if c.App.MPVPlayer != nil {
+			c.App.MPVPlayer.SetAudioExclusive(c.App.Config.LocalPlayback.AudioExclusive)
+		}
 	}
 	dlg.OnPauseFadeSettingsChanged = func() {
-		c.App.LocalPlayer.SetPauseFade(c.App.Config.LocalPlayback.PauseFade)
+		if c.App.MPVPlayer != nil {
+			c.App.MPVPlayer.SetPauseFade(c.App.Config.LocalPlayback.PauseFade)
+		}
 	}
 	dlg.OnAudioDeviceSettingChanged = func() {
-		c.App.LocalPlayer.SetAudioDevice(c.App.Config.LocalPlayback.AudioDeviceName)
+		if c.App.MPVPlayer != nil {
+			c.App.MPVPlayer.SetAudioDevice(c.App.Config.LocalPlayback.AudioDeviceName)
+		}
 	}
 	dlg.OnThemeSettingChanged = themeUpdateCallbk
 	dlg.OnEqualizerSettingsChanged = func() {
 		// currently we only have one equalizer type
-		eq := c.App.LocalPlayer.Equalizer().(*mpv.ISO15BandEqualizer)
-		eq.Disabled = !c.App.Config.LocalPlayback.EqualizerEnabled
-		eq.EQPreamp = c.App.Config.LocalPlayback.EqualizerPreamp
-		copy(eq.BandGains[:], c.App.Config.LocalPlayback.GraphicEqualizerBands)
-		c.App.LocalPlayer.SetEqualizer(eq)
+		if c.App.MPVPlayer != nil {
+			eq := c.App.MPVPlayer.Equalizer().(*mpv.ISO15BandEqualizer)
+			eq.Disabled = !c.App.Config.LocalPlayback.EqualizerEnabled
+			eq.EQPreamp = c.App.Config.LocalPlayback.EqualizerPreamp
+			copy(eq.BandGains[:], c.App.Config.LocalPlayback.GraphicEqualizerBands)
+			c.App.MPVPlayer.SetEqualizer(eq)
+		}
 	}
 	dlg.OnPageNeedsRefresh = c.RefreshPageFunc
 	dlg.OnClearCaches = func() { go c.App.ClearCaches() }

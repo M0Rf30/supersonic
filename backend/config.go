@@ -130,6 +130,7 @@ type PlaybackConfig struct {
 }
 
 type LocalPlaybackConfig struct {
+	AudioBackend          string // "mpv" or "native"
 	AudioDeviceName       string
 	AudioExclusive        bool
 	InMemoryCacheSizeMB   int

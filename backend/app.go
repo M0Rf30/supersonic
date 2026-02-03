@@ -19,6 +19,7 @@ import (
 	"github.com/dweymouth/supersonic/backend/mediaprovider"
 	"github.com/dweymouth/supersonic/backend/player"
 	"github.com/dweymouth/supersonic/backend/player/mpv"
+	"github.com/dweymouth/supersonic/backend/player/native"
 	"github.com/dweymouth/supersonic/backend/util"
 	"github.com/dweymouth/supersonic/backend/windows"
 	"github.com/google/uuid"
@@ -49,7 +50,8 @@ type App struct {
 	ImageManager    *ImageManager
 	AudioCache      *AudioCache
 	PlaybackManager *PlaybackManager
-	LocalPlayer     *mpv.Player
+	LocalPlayer     player.BasePlayer
+	MPVPlayer       *mpv.Player // Keep reference for MPV-specific features
 	UpdateChecker   UpdateChecker
 	MPRISHandler    *MPRISHandler
 	WinSMTC         *windows.SMTC
@@ -137,10 +139,10 @@ func StartupApp(appName, displayAppName, appVersion, appVersionTag, latestReleas
 		a.UpdateChecker.Start(a.bgrndCtx, 24*time.Hour)
 	}
 
-	if err := a.initMPV(); err != nil {
+	if err := a.initPlayer(); err != nil {
 		return nil, err
 	}
-	if err := a.setupMPV(); err != nil {
+	if err := a.setupPlayer(); err != nil {
 		return nil, err
 	}
 
@@ -327,6 +329,32 @@ func (a *App) callOnExit() error {
 	return nil
 }
 
+func (a *App) initPlayer() error {
+	backend := a.Config.LocalPlayback.AudioBackend
+	if backend == "" {
+		backend = "mpv" // Default to MPV
+	}
+
+	switch backend {
+	case "native":
+		return a.initNativePlayer()
+	case "mpv":
+		fallthrough
+	default:
+		return a.initMPV()
+	}
+}
+
+func (a *App) initNativePlayer() error {
+	p := native.New()
+	if err := p.Init(); err != nil {
+		return fmt.Errorf("failed to initialize native player: %s", err.Error())
+	}
+	a.LocalPlayer = p
+	log.Println("Using native Go audio player")
+	return nil
+}
+
 func (a *App) initMPV() error {
 	p := mpv.NewWithClientName(a.appName)
 	c := a.Config.LocalPlayback
@@ -335,14 +363,48 @@ func (a *App) initMPV() error {
 		return fmt.Errorf("failed to initialize mpv player: %s", err.Error())
 	}
 	a.LocalPlayer = p
+	a.MPVPlayer = p // Keep reference for MPV-specific features
+	log.Println("Using MPV audio player")
+	return nil
+}
+
+func (a *App) setupPlayer() error {
+	backend := a.Config.LocalPlayback.AudioBackend
+	if backend == "" {
+		backend = "mpv"
+	}
+
+	switch backend {
+	case "native":
+		return a.setupNativePlayer()
+	case "mpv":
+		fallthrough
+	default:
+		return a.setupMPV()
+	}
+}
+
+func (a *App) setupNativePlayer() error {
+	a.Config.LocalPlayback.Volume = clamp(a.Config.LocalPlayback.Volume, 0, 100)
+	a.LocalPlayer.SetVolume(a.Config.LocalPlayback.Volume)
+
+	// Native player doesn't support device selection yet
+	// Native player doesn't support ReplayGain yet
+	// Native player doesn't support audio exclusive mode yet
+	// Native player doesn't support equalizer yet
+
 	return nil
 }
 
 func (a *App) setupMPV() error {
+	if a.MPVPlayer == nil {
+		return errors.New("MPV player not initialized")
+	}
+
 	a.Config.LocalPlayback.Volume = clamp(a.Config.LocalPlayback.Volume, 0, 100)
 	a.LocalPlayer.SetVolume(a.Config.LocalPlayback.Volume)
 
-	devs, err := a.LocalPlayer.ListAudioDevices()
+	devs, err := a.MPVPlayer.ListAudioDevices()
 	if err != nil {
 		return err
 	}
@@ -362,7 +424,7 @@ func (a *App) setupMPV() error {
 		// (e.g. a USB audio device that is currently unplugged)
 		desiredDevice = "auto"
 	}
-	a.LocalPlayer.SetAudioDevice(desiredDevice)
+	a.MPVPlayer.SetAudioDevice(desiredDevice)
 
 	rgainOpts := []string{ReplayGainNone, ReplayGainAlbum, ReplayGainTrack, ReplayGainAuto}
 	if !slices.Contains(rgainOpts, a.Config.ReplayGain.Mode) {
@@ -378,20 +440,20 @@ func (a *App) setupMPV() error {
 		mode = player.ReplayGainTrack
 	}
 
-	a.LocalPlayer.SetReplayGainOptions(player.ReplayGainOptions{
+	a.MPVPlayer.SetReplayGainOptions(player.ReplayGainOptions{
 		Mode:            mode,
 		PreventClipping: a.Config.ReplayGain.PreventClipping,
 		PreampGain:      a.Config.ReplayGain.PreampGainDB,
 	})
-	a.LocalPlayer.SetAudioExclusive(a.Config.LocalPlayback.AudioExclusive)
-	a.LocalPlayer.SetPauseFade(a.Config.LocalPlayback.PauseFade)
+	a.MPVPlayer.SetAudioExclusive(a.Config.LocalPlayback.AudioExclusive)
+	a.MPVPlayer.SetPauseFade(a.Config.LocalPlayback.PauseFade)
 
 	eq := &mpv.ISO15BandEqualizer{
 		EQPreamp: a.Config.LocalPlayback.EqualizerPreamp,
 		Disabled: !a.Config.LocalPlayback.EqualizerEnabled,
 	}
 	copy(eq.BandGains[:], a.Config.LocalPlayback.GraphicEqualizerBands)
-	a.LocalPlayer.SetEqualizer(eq)
+	a.MPVPlayer.SetEqualizer(eq)
 
 	return nil
 }
