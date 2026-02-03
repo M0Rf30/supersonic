@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// FileStreamerServer serves a single file over HTTP using chunked transfer encoding.
+// It is designed to stream files that are being downloaded concurrently,
+// waiting for more content as needed until the file is complete.
 type FileStreamerServer struct {
 	Path       string
 	IsComplete func() bool
@@ -59,7 +62,9 @@ func (fs *FileStreamerServer) Serve() error {
 	return fs.server.Shutdown(ctx)
 }
 
-// Handler that streams the file using chunked transfer encoding.
+// streamHandler handles HTTP requests by streaming the file content with chunked transfer encoding.
+// It waits for file content to become available if IsComplete returns false, making it suitable
+// for streaming files that are still being downloaded.
 func (fs *FileStreamerServer) streamHandler(w http.ResponseWriter, _ *http.Request) {
 	defer close(fs.done) // signal Serve() to shut down after this request
 

@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+// CopyFile copies a file from srcPath to dstPath.
+// Returns an error if either file operation fails.
 func CopyFile(srcPath, dstPath string) error {
 	fin, err := os.Open(srcPath)
 	if err != nil {
@@ -24,6 +26,8 @@ func CopyFile(srcPath, dstPath string) error {
 	return err
 }
 
+// GetLocalIP returns the first non-loopback IPv4 address from available network interfaces.
+// Returns an error if no suitable interface is found or if reading interfaces fails.
 func GetLocalIP() (string, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
